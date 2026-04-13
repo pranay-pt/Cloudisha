@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cloudisha Groups ☁️</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .groups-layout { display: flex; gap: 0; min-height: calc(100vh - 60px); }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 280px; min-width: 280px;
+      background: #fff; border-right: 1px solid #e0e0e0;
+      display: flex; flex-direction: column;
+      padding: 16px; gap: 10px;
+    }
+    body.dark .sidebar { background: #1e1e1e; border-color: #333; }
+
+    .sidebar h3 { margin: 0 0 8px 0; font-size: 15px; color: #555; }
+    body.dark .sidebar h3 { color: #aaa; }
+
+    .group-item {
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      border: 1px solid #e0e0e0; background: #f9f9f9;
+      transition: 0.15s;
+    }
+    body.dark .group-item { background: #2a2a2a; border-color: #444; color: #eee; }
+    .group-item:hover, .group-item.active { background: #e0e7ff; border-color: #4a90e2; }
+    body.dark .group-item:hover, body.dark .group-item.active { background: #1a3a5c; border-color: #4a90e2; }
+    .group-item .gname { font-weight: bold; font-size: 14px; }
+    .group-item .gid   { font-size: 11px; color: #888; font-family: monospace; }
+    .group-item .gadmin-badge {
+      font-size: 10px; background: #4a90e2; color: white;
+      border-radius: 4px; padding: 1px 5px; margin-left: 6px;
+    }
+
+    .sidebar-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .sidebar-actions button {
+      padding: 9px; border: none; border-radius: 7px;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+    }
+    .btn-create { background: #4a90e2; color: white; }
+    .btn-create:hover { background: #357abd; }
+    .btn-join   { background: #e8f4e8; color: #2e7d32; border: 1px solid #a5d6a7 !important; }
+    .btn-join:hover { background: #c8e6c9; }
+    body.dark .btn-join { background: #1b3a1b; color: #81c784; border-color: #388e3c !important; }
+
+    /* MAIN PANEL */
+    .group-main {
+      flex: 1; padding: 24px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .group-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
+      padding: 16px 20px;
+    }
+    body.dark .group-header { background: #1e1e1e; border-color: #333; }
+    .group-header h2 { margin: 0 0 4px 0; }
+    .group-id-tag {
+      font-family: monospace; font-size: 13px;
+      background: #f0f4ff; border: 1px solid #c0d0f0;
+      border-radius: 5px; padding: 3px 8px; color: #4a90e2;
+      cursor: pointer; user-select: all;
+    }
+    body.dark .group-id-tag { background: #1a2a3a; border-color: #2a4a6a; }
+    .group-id-tag:hover { background: #dde8ff; }
+    .header-meta { font-size: 13px; color: #888; margin-top: 4px; }
+
+    .btn-leave {
+      padding: 7px 14px; border: none; border-radius: 6px;
+      background: #ffe0e0; color: #c62828; cursor: pointer; font-size: 13px;
+    }
+    .btn-leave:hover { background: #ffcdd2; }
+
+    /* SECTION CARDS */
+    .section-card {
+      background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px 20px;
+    }
+    body.dark .section-card { background: #1e1e1e; border-color: #333; }
+    .section-card h3 { margin: 0 0 14px 0; font-size: 15px; }
+
+    /* PENDING REQUESTS */
+    .request-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; border-radius: 7px; background: #f9f9f9;
+      border: 1px solid #eee; margin-bottom: 8px;
+    }
+    body.dark .request-item { background: #2a2a2a; border-color: #444; color: #eee; }
+    .request-item .req-email { font-size: 13px; }
+    .request-actions { display: flex; gap: 8px; }
+    .btn-approve {
+      padding: 5px 12px; border: none; border-radius: 5px;
+      background: #e8f5e9; color: #2e7d32; cursor: pointer; font-size: 12px;
+    }
+    .btn-approve:hover { background: #c8e6c9; }
+    .btn-reject {
+      padding: 5px 12px; border: none; border-radius: 5px;
+      background: #fce4ec; color: #c62828; cursor: pointer; font-size: 12px;
+    }
+    .btn-reject:hover { background: #f8bbd0; }
+
+    /* MEMBERS */
+    .member-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 12px; border-radius: 7px; background: #f9f9f9;
+      border: 1px solid #eee; margin-bottom: 6px;
+    }
+    body.dark .member-item { background: #2a2a2a; border-color: #444; color: #eee; }
+    .member-info { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .admin-crown { font-size: 14px; }
+    .btn-promote {
+      padding: 4px 10px; border: none; border-radius: 5px;
+      background: #fff8e1; color: #f57f17; cursor: pointer; font-size: 12px;
+    }
+    .btn-promote:hover { background: #fff3cd; }
+
+    /* UPLOAD */
+    .upload-row {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .upload-row input[type=file] { flex: 1; }
+    .btn-upload {
+      padding: 8px 16px; background: #4a90e2; color: white;
+      border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .btn-upload:hover { background: #357abd; }
+
+    /* FILE GRID */
+    .group-files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px; margin-top: 14px;
+    }
+
+    /* EMPTY / PLACEHOLDER */
+    .placeholder {
+      text-align: center; color: #aaa; padding: 40px 20px; font-size: 15px;
+    }
+
+    /* MODAL */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: 12px; padding: 28px;
+      width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+    body.dark .modal { background: #1e1e1e; color: #eee; }
+    .modal h3 { margin: 0 0 16px 0; }
+    .modal input {
+      width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 6px;
+      font-size: 14px; margin-bottom: 12px; box-sizing: border-box;
+    }
+    body.dark .modal input { background: #2a2a2a; border-color: #444; color: #eee; }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btns button { flex: 1; padding: 9px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn-confirm { background: #4a90e2; color: white; }
+    .btn-confirm:hover { background: #357abd; }
+    .btn-cancel  { background: #f0f0f0; color: #333; }
+    .btn-cancel:hover { background: #e0e0e0; }
+    body.dark .btn-cancel { background: #333; color: #eee; }
+  </style>
+</head>
+<body class="light">
+
+  <!-- NAVBAR -->
+  <div class="navbar">
+    <h2>☁️ Cloudisha &nbsp;<span style="font-size:14px;font-weight:normal;color:#888;">/ Groups</span></h2>
+    <div class="nav-actions">
+      <a href="dashboard.html" style="text-decoration:none;">
+        <button style="background:#f0f0f0;color:#333;">📁 My Files</button>
+      </a>
+      <button id="themeToggle" class="theme-btn">🌞</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="groups-layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-actions">
+        <button class="btn-create" onclick="openCreateModal()">➕ Create Group</button>
+        <button class="btn-join"   onclick="openJoinModal()">🔗 Join via Group ID</button>
+      </div>
+      <h3>MY GROUPS</h3>
+      <div id="groupList"><p style="color:#aaa;font-size:13px;">No groups yet.</p></div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="group-main" id="groupMain">
+      <div class="placeholder">👈 Select a group or create one to get started</div>
+    </div>
+
+  </div>
+
+  <!-- CREATE MODAL -->
+  <div class="modal-backdrop" id="createModal">
+    <div class="modal">
+      <h3>➕ Create New Group</h3>
+      <input id="newGroupName" placeholder="Group name" />
+      <div class="modal-btns">
+        <button class="btn-confirm" onclick="createGroup()">Create</button>
+        <button class="btn-cancel"  onclick="closeModal('createModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOIN MODAL -->
+  <div class="modal-backdrop" id="joinModal">
+    <div class="modal">
+      <h3>🔗 Join a Group</h3>
+      <input id="joinGroupId" placeholder="Enter Group ID (e.g. AB12CD)" style="text-transform:uppercase" />
+      <div class="modal-btns">
+        <button class="btn-confirm" onclick="requestJoin()">Send Request</button>
+        <button class="btn-cancel"  onclick="closeModal('joinModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="groups.js"></script>
+</body>
+</html>

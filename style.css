@@ -1,0 +1,220 @@
+/* ========================= */
+/* 🌍 CLEAN DASHBOARD THEME */
+/* ========================= */
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  transition: all 0.3s ease;
+}
+
+/* NAVBAR */
+.navbar {
+  background: #ffffff;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.navbar button {
+  padding: 6px 12px;
+  border: none;
+  background: #4a90e2;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.navbar button:hover {
+  background: #357abd;
+}
+
+/* SEARCH + FILTER */
+.search-box {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+}
+
+.search-box input,
+.search-box select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* UPLOAD */
+.upload-box {
+  padding: 0 20px 20px 20px;
+}
+
+.upload-box input {
+  margin-right: 10px;
+}
+
+.upload-btn {
+  padding: 8px 14px;
+  background: #4a90e2;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.upload-btn:hover {
+  background: #357abd;
+}
+
+/* FILE GRID */
+.files-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+/* FILE CARD */
+.file-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  transition: 0.2s;
+}
+
+.file-card:hover {
+  transform: translateY(-3px);
+}
+
+/* PREVIEW */
+.preview {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #f0f0f0;
+  border-radius: 6px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* FILE INFO */
+.file-info a {
+  text-decoration: none;
+  font-weight: bold;
+  color: #333;
+}
+
+.file-info small {
+  color: #777;
+}
+
+/* ACTION BUTTONS */
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.actions button:first-child {
+  background: #e0e7ff;
+}
+
+.actions button:last-child {
+  background: #ffe0e0;
+}
+
+/* EMPTY STATE */
+.files-container h3 {
+  margin: 0;
+}
+
+/* ========================= */
+/* 🌗 THEME SYSTEM */
+/* ========================= */
+
+body.light {
+  background: #f5f6fa;
+  color: #333;
+}
+
+body.dark {
+  background: #121212;
+  color: white;
+}
+
+/* smooth transition */
+body {
+  transition: all 0.3s ease;
+}
+
+/* ========================= */
+/* 🎨 NAV ACTIONS */
+/* ========================= */
+.nav-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ========================= */
+/* 🌗 THEME BUTTON */
+/* ========================= */
+.theme-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+
+  background: #f0f0f0;
+  font-size: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: all 0.25s ease;
+}
+
+.theme-btn:hover {
+  transform: scale(1.1);
+  background: #e0e0e0;
+}
+
+/* DARK MODE BUTTON */
+body.dark .theme-btn {
+  background: #2a2a2a;
+  color: white;
+}
+
+body.dark .theme-btn:hover {
+  background: #3a3a3a;
+}

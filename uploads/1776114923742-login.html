@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cloudisha Login ☁️</title>
+  <link rel="stylesheet" href="theme.css">
+</head>
+
+<body>
+  <div class="glass-box">
+    <h1>Cloudisha ☁️</h1>
+    <p>Store your files like a king 👑</p>
+
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+
+    <button onclick="signup()" class="secondary">
+      Create Account
+    </button>
+  </div>
+
+  <!-- ✅ FIXED: removed type="module" — module scripts are scoped and can't
+       expose window.login / window.signup to inline onclick handlers -->
+  <script src="app.js"></script>
+</body>
+</html>

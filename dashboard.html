@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cloudisha Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="light">
+
+  <!-- 🔷 Navbar -->
+  <div class="navbar">
+    <h2>☁️ Cloudisha</h2>
+
+    <div class="nav-actions">
+      <a href="groups.html" style="text-decoration:none;">
+        <button style="background:#e0e7ff;color:#3730a3;">👥 Groups</button>
+      </a>
+      <button id="themeToggle" class="theme-btn">🌞</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- 🔍 Search -->
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="🔍 Search files..." />
+
+    <select id="typeFilter">
+      <option value="all">All</option>
+      <option value="image">Images</option>
+      <option value="pdf">PDF</option>
+      <option value="audio">Audio</option>
+      <option value="other">Others</option>
+    </select>
+  </div>
+
+  <!-- 📤 Upload -->
+  <div class="upload-box">
+    <input type="file" id="fileInput" multiple />
+    <button class="upload-btn" onclick="upload()">Upload</button>
+  </div>
+
+  <!-- 📁 Files -->
+  <div class="files-container" id="fileList">
+    <p style="color:#999;padding:20px;">Loading files...</p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

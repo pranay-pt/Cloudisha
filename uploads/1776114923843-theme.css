@@ -1,0 +1,73 @@
+/* ========================= */
+/* 🌍 BASIC CLEAN THEME */
+/* ========================= */
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f6fa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* CONTAINER */
+.glass-box {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 30px;
+  width: 320px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+/* HEADINGS */
+h1 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+p {
+  margin-bottom: 20px;
+  color: #666;
+}
+
+/* INPUTS */
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+/* BUTTON */
+button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #4a90e2;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #357abd;
+}
+
+/* SECOND BUTTON */
+button.secondary {
+  background: white;
+  color: #4a90e2;
+  border: 1px solid #4a90e2;
+  margin-top: 10px;
+}
+
+button.secondary:hover {
+  background: #f0f6ff;
+}
