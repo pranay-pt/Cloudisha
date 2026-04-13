@@ -1,246 +1,261 @@
 require("dotenv").config();
 
-const multer = require("multer");
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
+const express    = require("express");
+const cors       = require("cors");
+const path       = require("path");
 const nodemailer = require("nodemailer");
+const multer     = require("multer");
+const { MongoClient } = require("mongodb");
+const cloudinary = require("cloudinary").v2;
+const { Readable } = require("stream");
 
 const app = express();
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
-
 app.use(express.static(path.join(__dirname)));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "login.html")));
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key:    process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const upload      = multer({ storage: multer.memoryStorage() });
+const groupUpload = multer({ storage: multer.memoryStorage() });
 
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 587,
   secure: false,
-  auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS
-  }
+  auth: { user: process.env.BREVO_USER, pass: process.env.BREVO_PASS }
 });
 
-let users = {};
-let groups = {};
+let db;
+async function connectDB() {
+  const client = new MongoClient(process.env.MONGO_URI);
+  await client.connect();
+  db = client.db("cloudisha");
+  console.log("MongoDB connected");
+}
+const users  = () => db.collection("users");
+const groups = () => db.collection("groups");
 
 function generateGroupId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// SEND VERIFICATION
+function uploadToCloudinary(buffer, filename, folder) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, public_id: Date.now() + "-" + filename.replace(/\.[^/.]+$/, ""), resource_type: "auto" },
+      (err, result) => { if (err) return reject(err); resolve(result); }
+    );
+    Readable.from(buffer).pipe(stream);
+  });
+}
+
+async function deleteFromCloudinary(publicId, resourceType = "raw") {
+  try { await cloudinary.uploader.destroy(publicId, { resource_type: resourceType }); }
+  catch (e) { console.error("Cloudinary delete error:", e.message); }
+}
+
+// SIGNUP
 app.post("/send-verification", async (req, res) => {
   const { email, password, username } = req.body;
   if (!email || !password || !username) return res.status(400).send("Missing fields");
-  if (users[email] && users[email].verified) return res.status(400).send("Account already exists. Please log in.");
-
+  const existing = await users().findOne({ email });
+  if (existing && existing.verified) return res.status(400).send("Account already exists. Please log in.");
   const token = Math.random().toString(36).substring(2);
-  users[email] = { email, password, username, verified: false, token };
+  await users().updateOne({ email }, { $set: { email, password, username, verified: false, token } }, { upsert: true });
   const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
   const link = `${BASE_URL}/verify?token=${token}&email=${encodeURIComponent(email)}`;
-
   try {
     await transporter.sendMail({
-      from: `"Cloudisha ☁️" <${process.env.BREVO_USER}>`,
+      from: `"Cloudisha" <${process.env.BREVO_USER}>`,
       to: email,
-      subject: "Verify your Cloudisha email ☁️",
+      subject: "Verify your Cloudisha email",
       html: `<h2>Email Verification</h2><p>Click to verify:</p><a href="${link}">Verify Email</a>`
     });
-    console.log("✅ Email sent to:", email);
     res.send({ success: true });
   } catch (err) {
-    console.error("❌ EMAIL ERROR:", err);
+    console.error("EMAIL ERROR:", err);
     res.status(500).send("Email failed");
   }
 });
 
 // VERIFY
-app.get("/verify", (req, res) => {
+app.get("/verify", async (req, res) => {
   const { email, token } = req.query;
-  if (users[email] && users[email].token === token) {
-    users[email].verified = true;
-    return res.send(`<h2>Email verified ✅</h2><script>setTimeout(()=>{window.location.href="/login.html"},2000)</script>`);
+  const user = await users().findOne({ email });
+  if (user && user.token === token) {
+    await users().updateOne({ email }, { $set: { verified: true } });
+    return res.send(`<h2>Email verified</h2><script>setTimeout(()=>{window.location.href="/login.html"},2000)</script>`);
   }
-  res.send("Invalid or expired link ❌");
+  res.send("Invalid or expired link");
 });
 
 // LOGIN
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  const user = users[email];
-  if (!user) return res.status(400).send("User not found");
-  if (!user.verified) return res.status(403).send("Verify your email first");
-  if (user.password !== password) return res.status(401).send("Wrong password");
-  res.send({ success: true, username: user.username });
+  const user = await users().findOne({ email });
+  if (!user)          return res.status(400).json({ message: "User not found" });
+  if (!user.verified) return res.status(403).json({ message: "Verify your email first" });
+  if (user.password !== password) return res.status(401).json({ message: "Wrong password" });
+  res.json({ success: true, username: user.username });
 });
 
-// PERSONAL FILE UPLOAD
-const UPLOADS_DIR = path.join(__dirname, "uploads");
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
-});
-const upload = multer({ storage });
-
-app.post("/upload", upload.single("file"), (req, res) => {
+// UPLOAD personal file
+app.post("/upload", upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-  res.send({ success: true, file: req.file.filename });
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Missing email" });
+  try {
+    const result = await uploadToCloudinary(req.file.buffer, req.file.originalname, "cloudisha/personal");
+    const fileDoc = { publicId: result.public_id, url: result.secure_url, name: req.file.originalname, resourceType: result.resource_type, uploadedAt: new Date() };
+    await users().updateOne({ email }, { $push: { files: fileDoc } });
+    res.json({ success: true, file: req.file.originalname });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ message: "Upload failed" });
+  }
 });
 
-app.get("/files", (req, res) => {
-  fs.readdir(UPLOADS_DIR, (err, files) => {
-    if (err) return res.status(500).json({ message: "Could not read files" });
-    res.json(files.filter(f => !fs.statSync(path.join(UPLOADS_DIR, f)).isDirectory()));
-  });
+// LIST personal files
+app.get("/files", async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ message: "Missing email" });
+  const user = await users().findOne({ email });
+  res.json(user?.files || []);
 });
 
-app.delete("/files/:name", (req, res) => {
-  const filename = path.basename(req.params.name);
-  const filepath = path.join(UPLOADS_DIR, filename);
-  if (!fs.existsSync(filepath)) return res.status(404).json({ message: "File not found" });
-  fs.unlink(filepath, (err) => {
-    if (err) return res.status(500).json({ message: "Delete failed" });
-    res.json({ success: true });
-  });
+// DELETE personal file
+app.delete("/files/:publicId(*)", async (req, res) => {
+  const { email } = req.query;
+  const publicId  = req.params.publicId;
+  if (!email) return res.status(400).json({ message: "Missing email" });
+  const user = await users().findOne({ email });
+  const file = user?.files?.find(f => f.publicId === publicId);
+  if (!file) return res.status(404).json({ message: "File not found" });
+  await deleteFromCloudinary(publicId, file.resourceType);
+  await users().updateOne({ email }, { $pull: { files: { publicId } } });
+  res.json({ success: true });
 });
-
-app.use("/uploads", express.static(UPLOADS_DIR));
-
-// ==========================
-// 👥 GROUP ROUTES
-// ==========================
 
 // CREATE GROUP
-app.post("/groups/create", (req, res) => {
+app.post("/groups/create", async (req, res) => {
   const { email, name } = req.body;
   if (!email || !name) return res.status(400).json({ message: "Missing fields" });
   let groupId;
-  do { groupId = generateGroupId(); } while (groups[groupId]);
-
-  groups[groupId] = { id: groupId, name, createdBy: email, admins: [email], members: [email], pendingRequests: [], files: [] };
-  console.log(`✅ Group created: ${groupId} by ${email}`);
+  do { groupId = generateGroupId(); } while (await groups().findOne({ id: groupId }));
+  await groups().insertOne({ id: groupId, name, createdBy: email, admins: [email], members: [email], pendingRequests: [], files: [] });
   res.json({ success: true, groupId });
 });
 
 // MY GROUPS
-app.get("/groups/mine", (req, res) => {
+app.get("/groups/mine", async (req, res) => {
   const { email } = req.query;
   if (!email) return res.status(400).json({ message: "Missing email" });
-  res.json(Object.values(groups).filter(g => g.members.includes(email)));
+  res.json(await groups().find({ members: email }).toArray());
 });
 
 // GROUP INFO
-app.get("/groups/:groupId", (req, res) => {
+app.get("/groups/:groupId", async (req, res) => {
   const { email } = req.query;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (!group.members.includes(email)) return res.status(403).json({ message: "Not a member" });
   res.json(group);
 });
 
-// REQUEST TO JOIN
-app.post("/groups/:groupId/request", (req, res) => {
+// REQUEST JOIN
+app.post("/groups/:groupId/request", async (req, res) => {
   const { email } = req.body;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (group.members.includes(email)) return res.status(400).json({ message: "Already a member" });
   if (group.pendingRequests.includes(email)) return res.status(400).json({ message: "Request already pending" });
-  group.pendingRequests.push(email);
+  await groups().updateOne({ id: req.params.groupId }, { $push: { pendingRequests: email } });
   res.json({ success: true });
 });
 
 // APPROVE
-app.post("/groups/:groupId/approve", (req, res) => {
+app.post("/groups/:groupId/approve", async (req, res) => {
   const { adminEmail, applicantEmail } = req.body;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (!group.admins.includes(adminEmail)) return res.status(403).json({ message: "Not an admin" });
   if (!group.pendingRequests.includes(applicantEmail)) return res.status(400).json({ message: "No pending request" });
-  group.pendingRequests = group.pendingRequests.filter(e => e !== applicantEmail);
-  group.members.push(applicantEmail);
+  await groups().updateOne({ id: req.params.groupId }, { $pull: { pendingRequests: applicantEmail }, $push: { members: applicantEmail } });
   res.json({ success: true });
 });
 
 // REJECT
-app.post("/groups/:groupId/reject", (req, res) => {
+app.post("/groups/:groupId/reject", async (req, res) => {
   const { adminEmail, applicantEmail } = req.body;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (!group.admins.includes(adminEmail)) return res.status(403).json({ message: "Not an admin" });
-  group.pendingRequests = group.pendingRequests.filter(e => e !== applicantEmail);
+  await groups().updateOne({ id: req.params.groupId }, { $pull: { pendingRequests: applicantEmail } });
   res.json({ success: true });
 });
 
-// PROMOTE TO ADMIN
-app.post("/groups/:groupId/promote", (req, res) => {
+// PROMOTE
+app.post("/groups/:groupId/promote", async (req, res) => {
   const { adminEmail, targetEmail } = req.body;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (!group.admins.includes(adminEmail)) return res.status(403).json({ message: "Not an admin" });
   if (!group.members.includes(targetEmail)) return res.status(400).json({ message: "Not a member" });
   if (group.admins.includes(targetEmail)) return res.status(400).json({ message: "Already an admin" });
-  group.admins.push(targetEmail);
+  await groups().updateOne({ id: req.params.groupId }, { $push: { admins: targetEmail } });
   res.json({ success: true });
 });
 
-// LEAVE GROUP
-app.post("/groups/:groupId/leave", (req, res) => {
+// LEAVE
+app.post("/groups/:groupId/leave", async (req, res) => {
   const { email } = req.body;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (!group.members.includes(email)) return res.status(400).json({ message: "Not a member" });
   if (group.createdBy === email) return res.status(400).json({ message: "Owner cannot leave. Delete the group instead." });
-  group.members = group.members.filter(e => e !== email);
-  group.admins  = group.admins.filter(e => e !== email);
+  await groups().updateOne({ id: req.params.groupId }, { $pull: { members: email, admins: email } });
   res.json({ success: true });
 });
 
 // GROUP FILE UPLOAD
-const groupStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const groupDir = path.join(UPLOADS_DIR, "groups", req.params.groupId);
-    if (!fs.existsSync(groupDir)) fs.mkdirSync(groupDir, { recursive: true });
-    cb(null, groupDir);
-  },
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname)
-});
-const groupUpload = multer({ storage: groupStorage });
-
-app.post("/groups/:groupId/upload", groupUpload.array("files"), (req, res) => {
+app.post("/groups/:groupId/upload", groupUpload.array("files"), async (req, res) => {
   const { email } = req.body;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (!group.members.includes(email)) return res.status(403).json({ message: "Not a member" });
   if (!req.files || req.files.length === 0) return res.status(400).json({ message: "No files" });
-  const names = req.files.map(f => f.filename);
-  group.files.push(...names);
-  res.json({ success: true, files: names });
+  try {
+    const uploaded = await Promise.all(req.files.map(async (f) => {
+      const result = await uploadToCloudinary(f.buffer, f.originalname, `cloudisha/groups/${req.params.groupId}`);
+      return { publicId: result.public_id, url: result.secure_url, name: f.originalname, resourceType: result.resource_type, uploadedAt: new Date() };
+    }));
+    await groups().updateOne({ id: req.params.groupId }, { $push: { files: { $each: uploaded } } });
+    res.json({ success: true, files: uploaded.map(f => f.name) });
+  } catch (err) {
+    console.error("Group upload error:", err);
+    res.status(500).json({ message: "Upload failed" });
+  }
 });
 
 // LIST GROUP FILES
-app.get("/groups/:groupId/files", (req, res) => {
+app.get("/groups/:groupId/files", async (req, res) => {
   const { email } = req.query;
-  const group = groups[req.params.groupId];
+  const group = await groups().findOne({ id: req.params.groupId });
   if (!group) return res.status(404).json({ message: "Group not found" });
   if (!group.members.includes(email)) return res.status(403).json({ message: "Not a member" });
-  res.json(group.files);
+  res.json(group.files || []);
 });
 
-app.use("/group-uploads", express.static(path.join(UPLOADS_DIR, "groups")));
-
-app.listen(3000, () => console.log("🚀 Server running on http://localhost:3000"));
+connectDB().then(() => {
+  app.listen(3000, () => console.log("Server running on http://localhost:3000"));
+}).catch(err => {
+  console.error("MongoDB connection failed:", err);
+  process.exit(1);
+});

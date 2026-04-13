@@ -143,22 +143,21 @@ async function loadGroupFiles(groupId) {
       return;
     }
 
-    container.innerHTML = `<div class="group-files-grid">${files.map(name => {
-      const url = `${API}/group-uploads/${groupId}/${name}`;
-      const ext = name.split(".").pop().toLowerCase();
+    container.innerHTML = `<div class="group-files-grid">${files.map(f => {
+      const ext = f.name.split(".").pop().toLowerCase();
       const isImage = ["jpg","jpeg","png","gif","webp","svg"].includes(ext);
       const preview = isImage
-        ? `<div class="preview"><img src="${url}" alt="${name}"/></div>`
+        ? `<div class="preview"><img src="${f.url}" alt="${f.name}"/></div>`
         : `<div class="preview" style="font-size:36px">${fileIcon(ext)}</div>`;
       return `
         <div class="file-card">
           ${preview}
           <div class="file-info">
-            <a href="${url}" target="_blank">${name}</a><br/>
+            <a href="${f.url}" target="_blank">${f.name}</a><br/>
             <small>${ext.toUpperCase()}</small>
           </div>
           <div class="actions">
-            <button onclick="window.open('${url}')">⬇️ Download</button>
+            <button onclick="window.open('${f.url}')">⬇️ Download</button>
           </div>
         </div>`;
     }).join("")}</div>`;
