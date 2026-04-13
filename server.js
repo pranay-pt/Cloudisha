@@ -25,15 +25,12 @@ app.use(express.static(path.join(__dirname)));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "login.html")));
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
+  host: "smtp-relay.brevo.com",
   port: 587,
   secure: false,
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_PASS
   }
 });
 
@@ -52,11 +49,12 @@ app.post("/send-verification", async (req, res) => {
 
   const token = Math.random().toString(36).substring(2);
   users[email] = { email, password, username, verified: false, token };
-  const link = `http://localhost:3000/verify?token=${token}&email=${encodeURIComponent(email)}`;
+  const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+  const link = `${BASE_URL}/verify?token=${token}&email=${encodeURIComponent(email)}`;
 
   try {
     await transporter.sendMail({
-      from: `"Cloudisha ☁️" <${process.env.GMAIL_USER}>`,
+      from: `"Cloudisha ☁️" <${process.env.BREVO_USER}>`,
       to: email,
       subject: "Verify your Cloudisha email ☁️",
       html: `<h2>Email Verification</h2><p>Click to verify:</p><a href="${link}">Verify Email</a>`

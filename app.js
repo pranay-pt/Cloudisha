@@ -1,8 +1,5 @@
-// ✅ If opened via Express (port 3000), use same origin (no CORS needed).
-//    If opened via Live Server (any other port), point to Express on 3000.
-const API = window.location.port === "3000"
-  ? ""
-  : "http://localhost:3000";
+// Use same origin always — works on localhost AND on Railway/any deployment
+const API = "";
 
 // ==========================
 // 🔐 SIGNUP
