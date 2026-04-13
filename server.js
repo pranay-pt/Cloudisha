@@ -131,9 +131,9 @@ app.get("/files", async (req, res) => {
 });
 
 // DELETE personal file
-app.delete("/files/:publicId(*)", async (req, res) => {
+app.delete("/files/*", async (req, res) => {
   const { email } = req.query;
-  const publicId  = req.params.publicId;
+  const publicId  = req.params[0];
   if (!email) return res.status(400).json({ message: "Missing email" });
   const user = await users().findOne({ email });
   const file = user?.files?.find(f => f.publicId === publicId);
